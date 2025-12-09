@@ -81,4 +81,117 @@ def validate_pairing_code(code: str) -> bool:
     Returns:
         True if valid
     """
-    if not isinstance(code
+    if not isinstance(code, str):
+        return False
+    
+    # Check length
+    if len(code) < 6 or len(code) > 20:
+        return False
+    
+    # Alphanumeric with optional separators
+    if not re.match(r'^[A-Z0-9][A-Z0-9-]*[A-Z0-9]$', code):
+        return False
+    
+    return True
+
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email address.
+    
+    Args:
+        email: Email address string
+    
+    Returns:
+        True if valid
+    """
+    if not isinstance(email, str):
+        return False
+    
+    # Check format
+    parsed = parseaddr(email)
+    if '@' not in parsed[1]:
+        return False
+    
+    # Basic regex validation
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+
+def validate_theme(theme: str) -> bool:
+    """
+    Validate theme name.
+    
+    Args:
+        theme: Theme name string
+    
+    Returns:
+        True if valid
+    """
+    valid_themes = {'default', 'neon', 'cyberpunk', 'matrix', 'aurora', 'hologram'}
+    return theme.lower() in valid_themes
+
+
+def validate_duration(duration_hours: int) -> bool:
+    """
+    Validate duration in hours.
+    
+    Args:
+        duration_hours: Duration in hours
+    
+    Returns:
+        True if valid
+    """
+    return isinstance(duration_hours, int) and 1 <= duration_hours <= 720  # Max 30 days
+
+
+def validate_max_uses(max_uses: int) -> bool:
+    """
+    Validate maximum uses.
+    
+    Args:
+        max_uses: Maximum number of uses
+    
+    Returns:
+        True if valid
+    """
+    return isinstance(max_uses, int) and 1 <= max_uses <= 1000
+
+
+def validate_timestamp(timestamp: str) -> bool:
+    """
+    Validate ISO timestamp.
+    
+    Args:
+        timestamp: ISO format timestamp string
+    
+    Returns:
+        True if valid
+    """
+    try:
+        datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def validate_metadata(metadata: Dict[str, Any]) -> bool:
+    """
+    Validate metadata dictionary.
+    
+    Args:
+        metadata: Metadata dictionary
+    
+    Returns:
+        True if valid
+    """
+    if not isinstance(metadata, dict):
+        return False
+    
+    # Check size limits
+    import json
+    metadata_json = json.dumps(metadata)
+    if len(metadata_json) > 10000:  # 10KB limit
+        return False
+    
+    return True
