@@ -117,4 +117,127 @@ class AuroraTheme(BaseTheme):
                     points.append((x, y))
                 
                 # Draw smooth curve through points
-                if len(p
+                if len(points) > 1:
+                    # Create color for this aurora segment
+                    hue = (layer * 60 + wave * 40) % 360
+                    saturation = 80
+                    brightness = 60
+                    
+                    # Convert HSV to RGB
+                    color = self._hsv_to_rgb(hue, saturation, brightness)
+                    
+                    # Draw thick line with gradient opacity
+                    for width_mult in range(5, 0, -1):
+                        line_width = width_mult * 2
+                        alpha = int(50 / width_mult)
+                        
+                        # Draw line segment
+                        for i in range(len(points) - 1):
+                            x1, y1 = points[i]
+                            x2, y2 = points[i + 1]
+                            
+                            aurora_draw.line([(x1, y1), (x2, y2)], 
+                                           fill=(*color, alpha), 
+                                           width=line_width)
+            
+            # Apply blur for aurora glow
+            aurora_layer = aurora_layer.filter(ImageFilter.GaussianBlur(radius=10))
+            
+            # Composite onto background
+            background = Image.alpha_composite(
+                background.convert('RGBA'), 
+                aurora_layer
+            ).convert('RGB')
+        
+        # Add stars
+        star_count = (width * height) // 1000
+        star_draw = ImageDraw.Draw(background)
+        
+        for _ in range(star_count):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            
+            # Star brightness
+            brightness = random.randint(100, 255)
+            size = random.randint(1, 3)
+            
+            # Draw star
+            for offset in range(size, 0, -1):
+                alpha = int(brightness * (offset / size))
+                star_color = (255, 255, 255, alpha)
+                
+                left = x - offset
+                top = y - offset
+                right = x + offset
+                bottom = y + offset
+                
+                star_draw.ellipse([left, top, right, bottom], 
+                                 fill=star_color, outline=None)
+        
+        return background
+    
+    def _hsv_to_rgb(self, h: float, s: float, v: float) -> Tuple[int, int, int]:
+        """Convert HSV to RGB."""
+        h = h % 360
+        s = max(0, min(100, s)) / 100
+        v = max(0, min(100, v)) / 100
+        
+        c = v * s
+        x = c * (1 - abs((h / 60) % 2 - 1))
+        m = v - c
+        
+        if 0 <= h < 60:
+            r, g, b = c, x, 0
+        elif 60 <= h < 120:
+            r, g, b = x, c, 0
+        elif 120 <= h < 180:
+            r, g, b = 0, c, x
+        elif 180 <= h < 240:
+            r, g, b = 0, x, c
+        elif 240 <= h < 300:
+            r, g, b = x, 0, c
+        else:
+            r, g, b = c, 0, x
+        
+        r = int((r + m) * 255)
+        g = int((g + m) * 255)
+        b = int((b + m) * 255)
+        
+        return (r, g, b)
+    
+    def create_color_shift_text(self, text: str, font_size: int = 48) -> Image.Image:
+        """Create color shifting text."""
+        from PIL import ImageFont
+        
+        try:
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except:
+            font = ImageFont.load_default()
+        
+        # Calculate text size
+        temp_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
+        temp_draw = ImageDraw.Draw(temp_img)
+        bbox = temp_draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Create canvas
+        canvas = Image.new('RGBA', (text_width, text_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(canvas)
+        
+        # Draw text with color gradient
+        for x in range(text_width):
+            # Calculate color based on position
+            hue = (x / text_width) * 360
+            color = self._hsv_to_rgb(hue, 80, 100)
+            
+            # Draw vertical slice
+            slice_img = Image.new('RGBA', (1, text_height), (0, 0, 0, 0))
+            slice_draw = ImageDraw.Draw(slice_img)
+            slice_draw.text((0, 0), text, fill=(*color, 255), font=font)
+            
+            # Extract slice and apply to canvas
+            canvas_slice = slice_img.crop((x, 0, x + 1, text_height))
+            canvas.paste(canvas_slice, (x, 0), canvas_slice)
+        
+        return canvas
